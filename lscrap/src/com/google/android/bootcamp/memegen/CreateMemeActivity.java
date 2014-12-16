@@ -114,7 +114,9 @@ public class CreateMemeActivity extends Activity {
             // Attempts to extract geotagged location information. This works for
             // Google blogspot articles tagged with location when written.
             if (last == null) {
+              
               String html = download(message);
+              Log.d(TAG, "getGeoTagsFromHtml - " + html);
               List<GeoTag> tags = GeoTagExtractor.getGeoTagsFromHtml(html);
               for (GeoTag tag : tags) {
                 last = store.add(message, tag.address, tag.latitude, tag.longitude);
