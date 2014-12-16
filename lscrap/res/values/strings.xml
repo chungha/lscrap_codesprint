@@ -12,7 +12,7 @@
         <item>경상</item>
     </string-array>
     <string-array name="korean_second_layer">
-        <item> .*도 .*시 .*동 [1-9][0-9]*</item>
-        <item> .*시 .*구 .*동 .* [1-9][0-9]*</item>
+        <item> .*도 .*시 .* [1-9][0-9]*</item>
+        <item> .*시 .*구 .* [1-9][0-9]*</item>
     </string-array>
 </resources>

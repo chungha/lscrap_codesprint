@@ -7,7 +7,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Created by chungha on 12/15/14.
@@ -72,12 +73,18 @@ public class Store {
     }
   }
 
-  private CopyOnWriteArraySet<Place> placeSet = new CopyOnWriteArraySet<Place>();
+  private Set<Place> placeSet = new HashSet<Place>();
+  
+  public Set<Place> getPlaceSet() {
+	  return placeSet;
+  }
 
-  public void add(String url, String address, double latitude, double longitude) {
-    placeSet.add(Place.of(url, address, latitude, longitude));
+  public Place add(String url, String address, double latitude, double longitude) {
+	Place p = Place.of(url, address, latitude, longitude);
+    placeSet.add(p);
 
     save();
+    return p;
   }
 
   private void load() {
