@@ -67,9 +67,14 @@ public class Store {
     public boolean equals(Object o) {
       if (o instanceof Place) {
         Place p = (Place)o;
-        return p.url.equals(this.url) || p.address.equals(this.address);
+        return p.address.equals(this.address);
       }
       return false;
+    }
+    
+    @Override
+    public int hashCode() {
+    	return this.address.hashCode();
     }
   }
 

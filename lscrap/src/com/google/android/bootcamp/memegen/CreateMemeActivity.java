@@ -1,7 +1,10 @@
 package com.google.android.bootcamp.memegen;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -15,9 +18,11 @@ import java.util.concurrent.Executors;
 import com.google.android.bootcamp.memegen.Store.Place;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.GoogleMap.OnMarkerClickListener;
 import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 /**
@@ -28,16 +33,34 @@ public class CreateMemeActivity extends Activity {
   private static final String TAG = CreateMemeActivity.class.getCanonicalName();
   private Store store;
   private MapFragment mapFragment;
+  private ProgressDialog progress;
   
   private void addMarker(Place p, GoogleMap map) {
 	map.addMarker(new MarkerOptions()
       .position(new LatLng(p.latitude, p.longitude))
       .title(p.url).snippet(p.address));
+	map.setOnMarkerClickListener(new OnMarkerClickListener() {
+		@Override
+		public boolean onMarkerClick(final Marker marker) {
+			new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+				@Override
+				public void run() {
+					Intent i = new Intent(Intent.ACTION_VIEW);
+					i.setData(Uri.parse(marker.getTitle()));
+					startActivity(i);
+				}
+			}, 1000);
+			return false;
+		}		
+	});
   }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+    
+    progress = ProgressDialog.show(this, "",
+    	    "Loading....", true);
    
     store = new Store(this.getApplicationContext().getSharedPreferences("places_store", 0));
   
@@ -83,6 +106,15 @@ public class CreateMemeActivity extends Activity {
 					setContentView(R.layout.activity_create_meme);  
 				    mapFragment = ((MapFragment) getFragmentManager().findFragmentById(R.id.map));   
 				    refreshMarkersAsync(focusPlace);
+				   
+				    if (focusPlace == null) {
+				    	AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(CreateMemeActivity.this);
+				    	dlgAlert.setMessage("Geo-point hasn't been extracted.");
+				    	dlgAlert.setTitle("T_T");
+				    	dlgAlert.setPositiveButton("OK", null);
+				    	dlgAlert.setCancelable(true);
+				    	dlgAlert.create().show();
+				    }
 				} 
               });
             } catch (IOException e1) {
@@ -106,7 +138,7 @@ public class CreateMemeActivity extends Activity {
   }
   
   private void refreshMarkers(final Place lastUpdate, GoogleMap map) {
-	map.setMapType(GoogleMap.MAP_TYPE_HYBRID);
+	map.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 	Log.d(TAG, "add markers! : " + store.getPlaceSet().size());
 	Place last = null;
 	for (Place p : store.getPlaceSet()) {
@@ -124,6 +156,7 @@ public class CreateMemeActivity extends Activity {
 	  mapFragment.getMapAsync(new OnMapReadyCallback() {
   		@Override
   		public void onMapReady(GoogleMap map) {
+  			progress.dismiss();
   			refreshMarkers(lastUpdate, map);
   		}
       });
