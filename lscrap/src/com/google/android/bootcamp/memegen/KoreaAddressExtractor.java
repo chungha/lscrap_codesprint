@@ -25,7 +25,7 @@ public class KoreaAddressExtractor implements Extractor {
       for (String token : firstLayerTokens) {
         if (s.contains(token)) {
           for (String p : secondLayerPatterns) {
-            Pattern pattern = Pattern.compile(p);
+            Pattern pattern = Pattern.compile(" " + p);
             Matcher matcher = pattern.matcher(s);
             while (matcher.find()) {
               result.add(s.substring(matcher.start(), matcher.end()).trim());
