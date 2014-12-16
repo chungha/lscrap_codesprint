@@ -41,7 +41,6 @@ public class CreateMemeActivity extends Activity {
             try {
               List<String> contents = e.extract(message);
               for (String c : contents) {
-                Log.d(TAG, "--- " + c);
                 List<String> addresses = ke.extract(c);
                 for (String a : addresses) {
                   Log.d(TAG, "+++ " + a);

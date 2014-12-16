@@ -14,40 +14,34 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
+import android.util.Log;
+
 /**
  * Created by chungha on 12/15/14.
  */
 public class TagContentExtractor implements Extractor {
-  @Override
+  private static final String TAG = TagContentExtractor.class.getCanonicalName();
+
+@Override
   public List<String> extract(String string) {
-    String html = download(string);
-    Pattern p = Pattern.compile("<.*>(.+?)</.*>");
-    Matcher m = p.matcher(html);
-    List<String> result = new ArrayList<String>();
-    while (m.find()) {
-        result.add(m.group(1));
-    }
-    return result;
+    return downloadAndRemoveTags(string);
   }
   
-  private String download(String url) {
-	// TODO Auto-generated method stub
+  private List<String> downloadAndRemoveTags(String url) {
+	  List<String> result = new ArrayList<String>();
       HttpClient client = new DefaultHttpClient();
       HttpGet request = new HttpGet(url);
-      String html = "";
       try {
           HttpResponse response = client.execute(request);
           InputStream in;
           in = response.getEntity().getContent();
           BufferedReader reader = new BufferedReader(
                   new InputStreamReader(in));
-          StringBuilder str = new StringBuilder();
           String line = null;
           while ((line = reader.readLine()) != null) {
-              str.append(line);
+        	  result.add(line.trim().replaceAll("\\<.*?>",""));
           }
           in.close();
-          html = str.toString();
       } catch (IllegalStateException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
@@ -55,6 +49,6 @@ public class TagContentExtractor implements Extractor {
           // TODO Auto-generated catch block
           e.printStackTrace();
       }
-      return html;
+      return result;
   }	
 }
