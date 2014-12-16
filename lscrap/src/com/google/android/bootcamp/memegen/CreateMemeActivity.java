@@ -11,7 +11,15 @@ import android.os.Looper;
 import android.util.Log;
 import android.util.Pair;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.concurrent.Executors;
 
@@ -73,13 +81,14 @@ public class CreateMemeActivity extends Activity {
           @Override
           public void run() {
             Log.d(TAG, "Extraction!");
+
             TagContentExtractor e = new TagContentExtractor();
             KoreaAddressExtractor ke = new KoreaAddressExtractor(
             		getResources().getStringArray(R.array.korean_first_layer),
             		getResources().getStringArray(R.array.korean_second_layer));
+            Place last = null;
             try {
               List<String> contents = e.extract(message);
-              Place last = null;
               for (String c : contents) {
                 List<String> addresses = ke.extract(c);
                 for (String a : addresses) {
@@ -98,31 +107,41 @@ public class CreateMemeActivity extends Activity {
                   Log.d(TAG, "OK");
                 }
               }
-              Log.d(TAG, "refresh markers");
-              final Place focusPlace = last;
-              new Handler(Looper.getMainLooper()).post(new Runnable() {
-				@Override
-				public void run() {
-					setContentView(R.layout.activity_create_meme);  
-				    mapFragment = ((MapFragment) getFragmentManager().findFragmentById(R.id.map));   
-				    refreshMarkersAsync(focusPlace);
-				   
-				    if (focusPlace == null) {
-				    	AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(CreateMemeActivity.this);
-				    	dlgAlert.setMessage("Geo-point hasn't been extracted.");
-				    	dlgAlert.setTitle("T_T");
-				    	dlgAlert.setPositiveButton("OK", null);
-				    	dlgAlert.setCancelable(true);
-				    	dlgAlert.create().show();
-				    }
-				} 
-              });
             } catch (IOException e1) {
               e1.printStackTrace();
             }
+
+            // Attempts to extract geotagged location information. This works for
+            // Google blogspot articles tagged with location when written.
+            if (last == null) {
+              String html = download(message);
+              List<GeoTag> tags = GeoTagExtractor.getGeoTagsFromHtml(html);
+              for (GeoTag tag : tags) {
+                last = store.add(message, tag.address, tag.latitude, tag.longitude);
+              }
+            }
+
+            Log.d(TAG, "refresh markers");
+            final Place focusPlace = last;
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+              @Override
+              public void run() {
+                  setContentView(R.layout.activity_create_meme);
+                  mapFragment = ((MapFragment) getFragmentManager().findFragmentById(R.id.map));
+                  refreshMarkersAsync(focusPlace);
+
+                  if (focusPlace == null) {
+                      AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(CreateMemeActivity.this);
+                      dlgAlert.setMessage("Geo-point hasn't been extracted.");
+                      dlgAlert.setTitle("T_T");
+                      dlgAlert.setPositiveButton("OK", null);
+                      dlgAlert.setCancelable(true);
+                      dlgAlert.create().show();
+                  }
+              }
+            });
           }
         });
-
       }
     } else {
     	setContentView(R.layout.activity_create_meme);  
@@ -132,7 +151,7 @@ public class CreateMemeActivity extends Activity {
     }
   }
   
-  private void moveCamara(Place p, GoogleMap map) {
+  private void moveCamera(Place p, GoogleMap map) {
 	  map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(p.latitude, p.longitude), 15));
 	  map.animateCamera(CameraUpdateFactory.zoomTo(10), 2000, null);
   }
@@ -146,9 +165,9 @@ public class CreateMemeActivity extends Activity {
 		last = p;
 	}
 	if (lastUpdate == null && last != null) {
-		moveCamara(last, map);
+		moveCamera(last, map);
 	} else if (lastUpdate != null) {
-		moveCamara(lastUpdate, map);
+		moveCamera(lastUpdate, map);
 	}
   }
   
@@ -160,5 +179,32 @@ public class CreateMemeActivity extends Activity {
   			refreshMarkers(lastUpdate, map);
   		}
       });
+  }
+
+  public static String download(String url) {
+      HttpClient client = new DefaultHttpClient();
+      HttpGet request = new HttpGet(url);
+      String html = "";
+      try {
+          HttpResponse response = client.execute(request);
+          InputStream in;
+          in = response.getEntity().getContent();
+          BufferedReader reader = new BufferedReader(
+                  new InputStreamReader(in));
+          StringBuilder str = new StringBuilder();
+          String line = null;
+          while ((line = reader.readLine()) != null) {
+              str.append(line);
+          }
+          in.close();
+          html = str.toString();
+      } catch (IllegalStateException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+      } catch (IOException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+      }
+      return html;
   }
 }
